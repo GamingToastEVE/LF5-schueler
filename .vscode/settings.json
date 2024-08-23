@@ -1,3 +1,7 @@
 {
-    "java.server.launchMode": "Standard"
+    "java.server.launchMode": "Standard",
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.colorTheme": "Monokai",
+    "editor.mouseWheelZoom": true
+    
 }
