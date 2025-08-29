@@ -378,35 +378,83 @@ public class SwingKassensystemApp extends JFrame {
             return;
         }
         
-        // Input dialog for Bon-ID
-        String bonIdStr = JOptionPane.showInputDialog(this, "Bon-ID zum Stornieren eingeben:", 
-                                                      "Verkauf stornieren", JOptionPane.PLAIN_MESSAGE);
-        if (bonIdStr == null || bonIdStr.trim().isEmpty()) {
-            return; // User cancelled
-        }
+        // Get list of active receipts
+        List<Bon> activeReceipts = verkaufService.getActiveReceipts();
         
-        int bonId;
-        try {
-            bonId = Integer.parseInt(bonIdStr.trim());
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Ungültige Bon-ID!", "Fehler", JOptionPane.ERROR_MESSAGE);
+        if (activeReceipts.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Keine aktiven Belege zum Stornieren vorhanden!", 
+                                          "Keine Belege", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         
-        // Retrieve receipt
-        Bon bon = verkaufService.getReceiptById(bonId);
-        if (bon == null) {
-            JOptionPane.showMessageDialog(this, "Bon nicht gefunden!", "Fehler", JOptionPane.ERROR_MESSAGE);
-            return;
+        // Create receipt selection dialog
+        showReceiptSelectionDialog(activeReceipts);
+    }
+    
+    private void showReceiptSelectionDialog(List<Bon> activeReceipts) {
+        JDialog selectionDialog = new JDialog(this, "Beleg zum Stornieren auswählen", true);
+        selectionDialog.setLayout(new BorderLayout());
+        selectionDialog.setSize(600, 400);
+        selectionDialog.setLocationRelativeTo(this);
+        
+        // Create table data
+        String[] columnNames = {"Bon-Nr", "Datum", "Verkäufer", "Betrag (EUR)"};
+        Object[][] data = new Object[activeReceipts.size()][4];
+        
+        for (int i = 0; i < activeReceipts.size(); i++) {
+            Bon bon = activeReceipts.get(i);
+            data[i][0] = bon.getBonId();
+            data[i][1] = bon.getFormattedDatum();
+            data[i][2] = bon.getVerkaufer().getFullName();
+            data[i][3] = String.format("%.2f", bon.getBruttoGesamtbetrag());
         }
         
-        if (bon.isCancelled()) {
-            JOptionPane.showMessageDialog(this, "Bon ist bereits storniert!", "Info", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
+        JTable receiptTable = new JTable(data, columnNames);
+        receiptTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        receiptTable.getTableHeader().setReorderingAllowed(false);
         
-        // Show receipt details dialog
-        showReceiptDetailsForCancellation(bon);
+        JScrollPane scrollPane = new JScrollPane(receiptTable);
+        
+        // Buttons
+        JButton selectButton = new JButton("Auswählen");
+        JButton cancelButton = new JButton("Abbrechen");
+        
+        selectButton.addActionListener(e -> {
+            int selectedRow = receiptTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(selectionDialog, "Bitte einen Beleg auswählen!", 
+                                              "Auswahl erforderlich", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            Bon selectedBon = activeReceipts.get(selectedRow);
+            selectionDialog.dispose();
+            
+            // Load full receipt details and show cancellation dialog
+            Bon fullBon = verkaufService.getReceiptById(selectedBon.getBonId());
+            if (fullBon != null) {
+                showReceiptDetailsForCancellation(fullBon);
+            } else {
+                JOptionPane.showMessageDialog(this, "Fehler beim Laden der Beleg-Details!", 
+                                              "Fehler", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        cancelButton.addActionListener(e -> selectionDialog.dispose());
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(selectButton);
+        buttonPanel.add(cancelButton);
+        
+        selectionDialog.add(scrollPane, BorderLayout.CENTER);
+        selectionDialog.add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Add instruction label
+        JLabel instructionLabel = new JLabel("Wählen Sie einen Beleg zum Stornieren aus:");
+        instructionLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        selectionDialog.add(instructionLabel, BorderLayout.NORTH);
+        
+        selectionDialog.setVisible(true);
     }
 
     private void showReceiptDetailsForCancellation(Bon bon) {
