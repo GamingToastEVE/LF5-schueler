@@ -47,12 +47,27 @@ cd LF5-schueler
 # Anwendung kompilieren
 mvn compile -DskipTests -Dcheckstyle.skip=true
 
-# Kassensystem starten
+# Kassensystem mit GUI starten (Standard)
 mvn exec:java
 
-# Alternativ mit Java direkt:
-java -cp "target/classes:/home/runner/.m2/repository/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-jdbc-3.36.0.3.jar" de.obj.KassensystemApp
+# Alternativ mit Java direkt (GUI):
+java -cp "target/classes:/home/runner/.m2/repository/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-jdbc-3.36.0.3.jar" de.obj.SwingKassensystemApp
+
+# Konsolen-Version:
+java -cp "target/classes:/home/runner/.m2/repository/org/xerial/sqlite-jdbc/3.36.0.3/sqlite-jdbc-3.36.0.3.jar" de.obj.Main --console
 ```
+
+### 🖥️ Benutzeroberfläche
+Das Kassensystem bietet zwei Modi:
+- **🎨 Grafische Benutzeroberfläche (Java Swing)** - Moderne, intuitive Bedienung mit Buttons und Dialogen
+- **📟 Konsolen-Interface** - Textbasierte Menüführung
+
+#### GUI-Features:
+- Übersichtliches Hauptfenster mit großen Buttons
+- Popup-Dialoge für Anmeldung und Verkaufsvorgänge
+- Produktauswahl aus Liste mit Mengenangabe
+- Kassenbon-Anzeige in separatem Fenster
+- Rollenbasierte Button-Aktivierung
 
 ### 🔑 Demo-Zugangsdaten
 Das System wird automatisch mit Demo-Benutzern initialisiert:
@@ -104,15 +119,17 @@ Das System wird automatisch mit Demo-Benutzern initialisiert:
 ### Software-Komponenten
 ```
 📁 de.obj
-├── 🖥️ KassensystemApp.java    # Hauptanwendung & UI
-├── 👤 User.java               # Benutzer-Entität
-├── 🛒 Produkt.java           # Produkt-Entität  
-├── 📄 Bon.java               # Kassenbon-Entität
-├── 📦 Artikel.java           # Bon-Position
-├── 🔧 DatabaseManager.java   # Datenbankverbindung
-├── 👥 UserService.java       # Benutzerverwaltung
-├── 🏪 ProduktService.java    # Produktverwaltung
-└── 💰 VerkaufService.java    # Verkaufsabwicklung
+├── 🖥️ SwingKassensystemApp.java # GUI-Hauptanwendung (Swing)
+├── 🖥️ KassensystemApp.java     # Konsolen-Hauptanwendung
+├── 🚀 Main.java                # Einstiegspunkt (GUI/Konsole)
+├── 👤 User.java                # Benutzer-Entität
+├── 🛒 Produkt.java            # Produkt-Entität  
+├── 📄 Bon.java                # Kassenbon-Entität
+├── 📦 Artikel.java            # Bon-Position
+├── 🔧 DatabaseManager.java    # Datenbankverbindung
+├── 👥 UserService.java        # Benutzerverwaltung
+├── 🏪 ProduktService.java     # Produktverwaltung
+└── 💰 VerkaufService.java     # Verkaufsabwicklung
 ```
 
 ## 🧪 Tests ausführen
@@ -137,13 +154,13 @@ mvn test -Dtest=KassensystemTest -Dcheckstyle.skip=true
 | ✅ Sicherheit | Implementiert | PIN-Hashing, Rollenkontrolle |
 | ✅ Datenhaltung | Vollständig | SQLite, Transaktionen |
 | 🔄 Excel-Import | Vorbereitet | Grundstruktur vorhanden |
-| 📱 Touch-UI | Konsole | Menüstruktur simuliert |
+| ✅ GUI-Interface | Vollständig | Java Swing, benutzerfreundlich |
 
 ## 🔮 Erweiterungsmöglichkeiten
 
 ### Nächste Entwicklungsstufen:
 1. **Excel-Import** für Produktdaten
-2. **Grafische Benutzeroberfläche** (JavaFX)
+2. **Erweiterte GUI-Funktionen** (Statistiken, Produktverwaltung, Stornierungen)
 3. **Barcode-Scanner Integration**
 4. **PDF-Export** für Statistiken
 5. **Netzwerk-Backend** für Multi-Terminal-Betrieb

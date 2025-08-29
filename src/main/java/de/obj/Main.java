@@ -5,6 +5,20 @@ package de.obj;
  */
 public class Main {
     public static void main(String[] args) {
-        KassensystemApp.main(args);
+        // Check if GUI mode is requested
+        boolean useGui = true; // Default to GUI
+        
+        for (String arg : args) {
+            if ("--console".equals(arg) || "-c".equals(arg)) {
+                useGui = false;
+                break;
+            }
+        }
+        
+        if (useGui) {
+            SwingKassensystemApp.main(args);
+        } else {
+            KassensystemApp.main(args);
+        }
     }
 }
