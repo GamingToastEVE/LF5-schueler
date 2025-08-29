@@ -372,7 +372,104 @@ public class SwingKassensystemApp extends JFrame {
     }
 
     private void showCancelSaleDialog() {
-        JOptionPane.showMessageDialog(this, "Verkauf stornieren - Implementierung folgt in erweiterten Versionen");
+        if (!currentUser.isFilialleiter()) {
+            JOptionPane.showMessageDialog(this, "Nur Filialleiter können Verkäufe stornieren!", 
+                                          "Berechtigung fehlt", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Input dialog for Bon-ID
+        String bonIdStr = JOptionPane.showInputDialog(this, "Bon-ID zum Stornieren eingeben:", 
+                                                      "Verkauf stornieren", JOptionPane.PLAIN_MESSAGE);
+        if (bonIdStr == null || bonIdStr.trim().isEmpty()) {
+            return; // User cancelled
+        }
+        
+        int bonId;
+        try {
+            bonId = Integer.parseInt(bonIdStr.trim());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Ungültige Bon-ID!", "Fehler", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Retrieve receipt
+        Bon bon = verkaufService.getReceiptById(bonId);
+        if (bon == null) {
+            JOptionPane.showMessageDialog(this, "Bon nicht gefunden!", "Fehler", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (bon.isCancelled()) {
+            JOptionPane.showMessageDialog(this, "Bon ist bereits storniert!", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Show receipt details dialog
+        showReceiptDetailsForCancellation(bon);
+    }
+
+    private void showReceiptDetailsForCancellation(Bon bon) {
+        JDialog cancelDialog = new JDialog(this, "Verkauf stornieren - Bon #" + bon.getBonId(), true);
+        cancelDialog.setLayout(new BorderLayout());
+        cancelDialog.setSize(500, 600);
+        cancelDialog.setLocationRelativeTo(this);
+        
+        // Receipt display area
+        JTextArea receiptArea = new JTextArea();
+        receiptArea.setText(bon.generateReceiptText());
+        receiptArea.setEditable(false);
+        receiptArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        
+        JScrollPane scrollPane = new JScrollPane(receiptArea);
+        scrollPane.setPreferredSize(new Dimension(450, 400));
+        
+        // Reason input
+        JLabel reasonLabel = new JLabel("Grund für Stornierung:");
+        JTextField reasonField = new JTextField(30);
+        
+        JPanel reasonPanel = new JPanel(new FlowLayout());
+        reasonPanel.add(reasonLabel);
+        reasonPanel.add(reasonField);
+        
+        // Buttons
+        JButton confirmButton = new JButton("Stornieren");
+        JButton cancelButton = new JButton("Abbrechen");
+        
+        confirmButton.addActionListener(e -> {
+            String reason = reasonField.getText().trim();
+            if (reason.isEmpty()) {
+                JOptionPane.showMessageDialog(cancelDialog, "Bitte einen Grund für die Stornierung angeben!", 
+                                              "Eingabe erforderlich", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            boolean success = verkaufService.cancelSale(bon.getBonId(), currentUser, reason);
+            if (success) {
+                JOptionPane.showMessageDialog(cancelDialog, "Verkauf erfolgreich storniert!", 
+                                              "Erfolg", JOptionPane.INFORMATION_MESSAGE);
+                cancelDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(cancelDialog, "Fehler beim Stornieren des Verkaufs!", 
+                                              "Fehler", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        cancelButton.addActionListener(e -> cancelDialog.dispose());
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(confirmButton);
+        buttonPanel.add(cancelButton);
+        
+        // Layout
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(scrollPane, BorderLayout.CENTER);
+        topPanel.add(reasonPanel, BorderLayout.SOUTH);
+        
+        cancelDialog.add(topPanel, BorderLayout.CENTER);
+        cancelDialog.add(buttonPanel, BorderLayout.SOUTH);
+        
+        cancelDialog.setVisible(true);
     }
 
     private void showStatistics() {
