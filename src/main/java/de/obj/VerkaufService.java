@@ -209,6 +209,65 @@ public class VerkaufService {
     }
     
     /**
+     * Get all active (non-cancelled) receipts for cancellation selection.
+     */
+    public List<Bon> getActiveReceipts() {
+        String sql = "SELECT BonID, VerkauferID, Datum, Gesamtbetrag FROM Kassenbons " +
+                    "WHERE IsCancelled = 0 ORDER BY Datum DESC";
+        
+        List<Bon> receipts = new ArrayList<>();
+        
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Bon bon = new Bon();
+                bon.setBonId(rs.getInt("BonID"));
+                
+                // Get seller
+                User verkaufer = userService.getUserById(rs.getInt("VerkauferID"));
+                bon.setVerkaufer(verkaufer);
+                
+                // Parse date
+                String datumStr = rs.getString("Datum");
+                LocalDateTime datum = LocalDateTime.parse(datumStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                bon.setDatum(datum);
+                
+                // Store total amount for display
+                double gesamtbetrag = rs.getDouble("Gesamtbetrag");
+                // Add a temporary field to store the total amount - we'll create a simple wrapper
+                BonSummary summary = new BonSummary(bon, gesamtbetrag);
+                
+                receipts.add(summary);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting active receipts: " + e.getMessage());
+        }
+        
+        return receipts;
+    }
+
+    /**
+     * Helper class to include total amount in receipt summary.
+     */
+    public static class BonSummary extends Bon {
+        private final double totalAmount;
+        
+        public BonSummary(Bon bon, double totalAmount) {
+            this.setBonId(bon.getBonId());
+            this.setVerkaufer(bon.getVerkaufer());
+            this.setDatum(bon.getDatum());
+            this.totalAmount = totalAmount;
+        }
+        
+        @Override
+        public double getBruttoGesamtbetrag() {
+            return totalAmount;
+        }
+    }
+
+    /**
      * Sales statistics data class.
      */
     public static class SalesStatistics {
