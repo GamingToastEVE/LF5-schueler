@@ -296,7 +296,8 @@ public class KassensystemApp {
             System.out.println("=== PRODUKTVERWALTUNG ===");
             System.out.println("1. Alle Produkte anzeigen");
             System.out.println("2. Neues Produkt hinzufügen");
-            System.out.println("3. Zurück");
+            System.out.println("3. MwSt anpassen");
+            System.out.println("4. Zurück");
             
             int choice = readInt("Wählen Sie eine Option: ");
             
@@ -308,6 +309,9 @@ public class KassensystemApp {
                     addNewProduct();
                     break;
                 case 3:
+                    adjustVat();
+                    break;
+                case 4:
                     return;
                 default:
                     System.out.println("Ungültige Auswahl!");
@@ -369,6 +373,52 @@ public class KassensystemApp {
             System.out.println("Produkt erfolgreich hinzugefügt!");
         } else {
             System.out.println("Fehler beim Hinzufügen des Produkts!");
+        }
+        pause();
+    }
+
+    private void adjustVat() {
+        List<Produkt> products = produktService.getAllProducts();
+        if (products.isEmpty()) {
+            System.out.println("Keine Produkte vorhanden!");
+            pause();
+            return;
+        }
+
+        System.out.println("\n=== MwSt ANPASSEN ===");
+        System.out.println("Produkt auswählen:");
+        for (int i = 0; i < products.size(); i++) {
+            Produkt p = products.get(i);
+            System.out.printf("%d. %s (aktuell: %.1f%% MwSt)\n",
+                    i + 1, p.getBezeichnung(), p.getMwst() * 100);
+        }
+
+        int choice = readInt("Produkt wählen (1-" + products.size() + "): ");
+        if (choice < 1 || choice > products.size()) {
+            System.out.println("Ungültige Auswahl!");
+            pause();
+            return;
+        }
+
+        Produkt selectedProduct = products.get(choice - 1);
+        System.out.printf("Aktuelle MwSt für '%s': %.1f%%\n",
+                selectedProduct.getBezeichnung(), selectedProduct.getMwst() * 100);
+
+        double newVatPercent = readDouble("Neue MwSt (in %): ");
+        if (newVatPercent < 0 || newVatPercent > 100) {
+            System.out.println("MwSt muss zwischen 0 und 100 liegen!");
+            pause();
+            return;
+        }
+
+        double vatDecimal = newVatPercent / 100.0;
+        selectedProduct.setMwst(vatDecimal);
+
+        if (produktService.saveProduct(selectedProduct)) {
+            System.out.printf("MwSt für '%s' auf %.1f%% geändert!\n",
+                    selectedProduct.getBezeichnung(), newVatPercent);
+        } else {
+            System.out.println("Fehler beim Speichern der MwSt!");
         }
         pause();
     }
