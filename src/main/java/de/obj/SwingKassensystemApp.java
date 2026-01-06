@@ -12,6 +12,8 @@ import java.util.List;
 public class SwingKassensystemApp extends JFrame {
     private static final int DEFAULT_CATEGORY_ID = 1;
     private static final double DEFAULT_VAT_RATE = 0.19;
+    private static final double MIN_VAT_RATE = 0.0;
+    private static final double MAX_VAT_RATE = 100.0;
 
     private final UserService userService;
     private final ProduktService produktService;
@@ -392,15 +394,21 @@ public class SwingKassensystemApp extends JFrame {
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton addProductButton = new JButton("Neues Produkt hinzufügen");
+        JButton adjustVatButton = new JButton("MwSt anpassen");
         JButton closeButton = new JButton("Schließen");
 
         addProductButton.addActionListener(e -> {
             showAddNewProductDialog(productListModel);
         });
 
+        adjustVatButton.addActionListener(e -> {
+            showAdjustVatDialog(productListModel);
+        });
+
         closeButton.addActionListener(e -> productDialog.dispose());
 
         buttonPanel.add(addProductButton);
+        buttonPanel.add(adjustVatButton);
         buttonPanel.add(closeButton);
 
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -524,6 +532,111 @@ public class SwingKassensystemApp extends JFrame {
 
         addDialog.add(panel);
         addDialog.setVisible(true);
+    }
+
+    private void showAdjustVatDialog(DefaultListModel<String> productListModel) {
+        List<Produkt> products = produktService.getAllProducts();
+        if (products.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Keine Produkte verfügbar!");
+            return;
+        }
+
+        JDialog vatDialog = new JDialog(this, "MwSt anpassen", true);
+        vatDialog.setSize(500, 400);
+        vatDialog.setLocationRelativeTo(this);
+
+        JPanel panel = new JPanel(new BorderLayout());
+
+        // Product list
+        DefaultListModel<Produkt> productDialogListModel = new DefaultListModel<>();
+        for (Produkt product : products) {
+            productDialogListModel.addElement(product);
+        }
+
+        JList<Produkt> productJList = new JList<>(productDialogListModel);
+        productJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollPane = new JScrollPane(productJList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Produkt auswählen"));
+
+        // VAT input panel
+        JPanel vatInputPanel = new JPanel(new FlowLayout());
+        vatInputPanel.add(new JLabel("Neue MwSt (%):"));
+        String defaultVatStr = String.format("%.0f", DEFAULT_VAT_RATE * 100);
+        JTextField vatField = new JTextField(defaultVatStr, 10);
+        vatInputPanel.add(vatField);
+
+        // Buttons
+        JButton saveButton = new JButton("Speichern");
+        JButton cancelButton = new JButton("Abbrechen");
+
+        saveButton.addActionListener(e -> {
+            Produkt selectedProduct = productJList.getSelectedValue();
+            if (selectedProduct == null) {
+                JOptionPane.showMessageDialog(vatDialog, "Bitte wählen Sie ein Produkt aus.");
+                return;
+            }
+
+            String vatStr = vatField.getText().trim();
+            double vatPercent;
+            try {
+                vatPercent = Double.parseDouble(vatStr);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(vatDialog,
+                        "Bitte geben Sie eine gültige Zahl ein!",
+                        "Eingabefehler", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (vatPercent < MIN_VAT_RATE || vatPercent > MAX_VAT_RATE) {
+                JOptionPane.showMessageDialog(vatDialog,
+                        String.format("MwSt muss zwischen %.0f und %.0f liegen!", MIN_VAT_RATE, MAX_VAT_RATE),
+                        "Eingabefehler", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Convert percentage to decimal (e.g., 19% -> 0.19)
+            double vatDecimal = vatPercent / 100.0;
+            selectedProduct.setMwst(vatDecimal);
+
+            if (produktService.saveProduct(selectedProduct)) {
+                JOptionPane.showMessageDialog(vatDialog,
+                        String.format("MwSt für '%s' auf %.1f%% geändert!",
+                                selectedProduct.getBezeichnung(), vatPercent),
+                        "Erfolg", JOptionPane.INFORMATION_MESSAGE);
+                refreshProductList(productListModel);
+                vatDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(vatDialog,
+                        "Fehler beim Speichern der MwSt!",
+                        "Fehler", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        cancelButton.addActionListener(e -> vatDialog.dispose());
+
+        // Update VAT field when product is selected
+        productJList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                Produkt selectedProduct = productJList.getSelectedValue();
+                if (selectedProduct != null) {
+                    vatField.setText(String.format("%.1f", selectedProduct.getMwst() * 100));
+                }
+            }
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.add(vatInputPanel, BorderLayout.CENTER);
+        southPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(southPanel, BorderLayout.SOUTH);
+
+        vatDialog.add(panel);
+        vatDialog.setVisible(true);
     }
 
     private void showCancelSaleDialog() {
