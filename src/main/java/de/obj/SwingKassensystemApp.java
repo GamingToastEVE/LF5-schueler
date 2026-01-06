@@ -769,7 +769,9 @@ public class SwingKassensystemApp extends JFrame {
                 BorderFactory.createEtchedBorder(), "Tagesumsatz (" + todayStr + ")"));
         dailyPanel.add(new JLabel("Anzahl Verkäufe: " + dailyStats.totalSales));
         dailyPanel.add(new JLabel(String.format("Gesamtumsatz: %.2f EUR", dailyStats.totalAmount)));
-        dailyPanel.add(new JLabel(String.format("Durchschnitt pro Verkauf: %.2f EUR", dailyStats.avgAmount)));
+        String dailyAvgText = Double.isNaN(dailyStats.avgAmount) || dailyStats.totalSales == 0
+                ? "0.00 EUR" : String.format("%.2f EUR", dailyStats.avgAmount);
+        dailyPanel.add(new JLabel("Durchschnitt pro Verkauf: " + dailyAvgText));
 
         // Weekly statistics panel
         JPanel weeklyPanel = new JPanel(new GridLayout(4, 1, 5, 5));
@@ -777,7 +779,9 @@ public class SwingKassensystemApp extends JFrame {
                 BorderFactory.createEtchedBorder(), "Wochenumsatz (" + weekAgoStr + " - " + todayStr + ")"));
         weeklyPanel.add(new JLabel("Anzahl Verkäufe: " + weeklyStats.totalSales));
         weeklyPanel.add(new JLabel(String.format("Gesamtumsatz: %.2f EUR", weeklyStats.totalAmount)));
-        weeklyPanel.add(new JLabel(String.format("Durchschnitt pro Verkauf: %.2f EUR", weeklyStats.avgAmount)));
+        String weeklyAvgText = Double.isNaN(weeklyStats.avgAmount) || weeklyStats.totalSales == 0
+                ? "0.00 EUR" : String.format("%.2f EUR", weeklyStats.avgAmount);
+        weeklyPanel.add(new JLabel("Durchschnitt pro Verkauf: " + weeklyAvgText));
 
         statsPanel.add(dailyPanel);
         statsPanel.add(weeklyPanel);
