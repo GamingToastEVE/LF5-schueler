@@ -39,7 +39,7 @@ class KassensystemTest {
     @Test
     void testProductRetrieval() {
         // Test getting all products
-        var products = produktService.getAllProducts();
+        java.util.List<Produkt> products = produktService.getAllProducts();
         assertFalse(products.isEmpty(), "Products should be available");
         
         // Test finding product by ID
