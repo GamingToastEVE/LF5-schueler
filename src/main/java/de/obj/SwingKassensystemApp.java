@@ -10,6 +10,9 @@ import java.util.List;
  * Swing GUI application for the cash register system.
  */
 public class SwingKassensystemApp extends JFrame {
+    private static final int DEFAULT_CATEGORY_ID = 1;
+    private static final double DEFAULT_VAT_RATE = 0.19;
+
     private final UserService userService;
     private final ProduktService produktService;
     private final VerkaufService verkaufService;
@@ -368,7 +371,159 @@ public class SwingKassensystemApp extends JFrame {
     }
 
     private void showProductManagement() {
-        JOptionPane.showMessageDialog(this, "Produktverwaltung - Implementierung folgt in erweiterten Versionen");
+        JDialog productDialog = new JDialog(this, "Produktverwaltung", true);
+        productDialog.setSize(700, 500);
+        productDialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        // Product list
+        DefaultListModel<String> productListModel = new DefaultListModel<>();
+        refreshProductList(productListModel);
+
+        JList<String> productList = new JList<>(productListModel);
+        productList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        productList.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        JScrollPane scrollPane = new JScrollPane(productList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Alle Produkte"));
+
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton addProductButton = new JButton("Neues Produkt hinzufügen");
+        JButton closeButton = new JButton("Schließen");
+
+        addProductButton.addActionListener(e -> {
+            showAddNewProductDialog(productListModel);
+        });
+
+        closeButton.addActionListener(e -> productDialog.dispose());
+
+        buttonPanel.add(addProductButton);
+        buttonPanel.add(closeButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        productDialog.add(mainPanel);
+        productDialog.setVisible(true);
+    }
+
+    private void refreshProductList(DefaultListModel<String> productListModel) {
+        productListModel.clear();
+        List<Produkt> products = produktService.getAllProducts();
+        for (Produkt p : products) {
+            String unit = p.isWeightBased() ? "pro kg" : "pro Stück";
+            String barcode = p.getBarcode() != null && !p.getBarcode().isEmpty()
+                    ? p.getBarcode() : "---";
+            productListModel.addElement(String.format("ID: %d | Barcode: %s | %s - %.2f EUR %s",
+                    p.getPid(), barcode, p.getBezeichnung(), p.getPreis(), unit));
+        }
+    }
+
+    private void showAddNewProductDialog(DefaultListModel<String> productListModel) {
+        JDialog addDialog = new JDialog(this, "Neues Produkt hinzufügen", true);
+        addDialog.setSize(400, 350);
+        addDialog.setLocationRelativeTo(this);
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Bezeichnung
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Bezeichnung:"), gbc);
+        JTextField bezeichnungField = new JTextField(20);
+        gbc.gridx = 1;
+        panel.add(bezeichnungField, gbc);
+
+        // Preis
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Preis (EUR):"), gbc);
+        JTextField preisField = new JTextField(20);
+        gbc.gridx = 1;
+        panel.add(preisField, gbc);
+
+        // Barcode
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Barcode (optional):"), gbc);
+        JTextField barcodeField = new JTextField(20);
+        gbc.gridx = 1;
+        panel.add(barcodeField, gbc);
+
+        // Gewichtsbasiert
+        gbc.gridx = 0; gbc.gridy = 3;
+        panel.add(new JLabel("Gewichtsbasiert:"), gbc);
+        JCheckBox weightBasedCheckBox = new JCheckBox();
+        gbc.gridx = 1;
+        panel.add(weightBasedCheckBox, gbc);
+
+        // Buttons
+        JButton saveButton = new JButton("Speichern");
+        JButton cancelButton = new JButton("Abbrechen");
+
+        saveButton.addActionListener(e -> {
+            String bezeichnung = bezeichnungField.getText().trim();
+            String preisStr = preisField.getText().trim();
+            String barcode = barcodeField.getText().trim();
+            boolean isWeightBased = weightBasedCheckBox.isSelected();
+
+            if (bezeichnung.isEmpty()) {
+                JOptionPane.showMessageDialog(addDialog, 
+                        "Bezeichnung ist erforderlich!", 
+                        "Eingabefehler", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            double preis;
+            try {
+                preis = Double.parseDouble(preisStr);
+                if (preis <= 0) {
+                    throw new NumberFormatException("Preis muss größer als 0 sein");
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(addDialog, 
+                        "Bitte geben Sie einen gültigen Preis größer als 0 ein!", 
+                        "Eingabefehler", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Produkt product = new Produkt();
+            product.setBezeichnung(bezeichnung);
+            product.setPreis(preis);
+            product.setBarcode(barcode);
+            product.setWeightBased(isWeightBased);
+            product.setKid(DEFAULT_CATEGORY_ID);
+            product.setMwst(DEFAULT_VAT_RATE);
+
+            if (produktService.saveProduct(product)) {
+                JOptionPane.showMessageDialog(addDialog, 
+                        "Produkt erfolgreich hinzugefügt!", 
+                        "Erfolg", JOptionPane.INFORMATION_MESSAGE);
+                // Refresh product list
+                refreshProductList(productListModel);
+                addDialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(addDialog, 
+                        "Fehler beim Hinzufügen des Produkts!", 
+                        "Fehler", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        cancelButton.addActionListener(e -> addDialog.dispose());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(buttonPanel, gbc);
+
+        addDialog.add(panel);
+        addDialog.setVisible(true);
     }
 
     private void showCancelSaleDialog() {
