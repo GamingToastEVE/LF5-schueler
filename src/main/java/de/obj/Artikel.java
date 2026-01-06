@@ -48,9 +48,10 @@ public class Artikel {
     public String toString() {
         DecimalFormat df = new DecimalFormat("#.##");
         String unit = produkt.isWeightBased() ? " kg" : " Stück";
-        return String.format("%s%s %s = %s EUR (netto) %s EUR (brutto)",
+        return String.format("%s%s %s = %s EUR (netto) %s EUR (brutto) [%.0f%% MwSt]",
                 df.format(menge), unit, produkt.getBezeichnung(),
                 df.format(getNettoGesamtpreis()),
-                df.format(getBruttoGesamtpreis()));
+                df.format(getBruttoGesamtpreis()),
+                produkt.getMwst() * 100);
     }
 }
