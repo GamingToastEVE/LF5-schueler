@@ -10,6 +10,9 @@ import java.util.List;
  * Swing GUI application for the cash register system.
  */
 public class SwingKassensystemApp extends JFrame {
+    private static final int DEFAULT_CATEGORY_ID = 1;
+    private static final double DEFAULT_VAT_RATE = 0.19;
+
     private final UserService userService;
     private final ProduktService produktService;
     private final VerkaufService verkaufService;
@@ -375,15 +378,8 @@ public class SwingKassensystemApp extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
 
         // Product list
-        List<Produkt> products = produktService.getAllProducts();
         DefaultListModel<String> productListModel = new DefaultListModel<>();
-        for (Produkt p : products) {
-            String unit = p.isWeightBased() ? "pro kg" : "pro Stück";
-            String barcode = p.getBarcode() != null && !p.getBarcode().isEmpty() 
-                    ? p.getBarcode() : "---";
-            productListModel.addElement(String.format("ID: %d | Barcode: %s | %s - %.2f EUR %s",
-                    p.getPid(), barcode, p.getBezeichnung(), p.getPreis(), unit));
-        }
+        refreshProductList(productListModel);
 
         JList<String> productList = new JList<>(productListModel);
         productList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -411,6 +407,18 @@ public class SwingKassensystemApp extends JFrame {
 
         productDialog.add(mainPanel);
         productDialog.setVisible(true);
+    }
+
+    private void refreshProductList(DefaultListModel<String> productListModel) {
+        productListModel.clear();
+        List<Produkt> products = produktService.getAllProducts();
+        for (Produkt p : products) {
+            String unit = p.isWeightBased() ? "pro kg" : "pro Stück";
+            String barcode = p.getBarcode() != null && !p.getBarcode().isEmpty()
+                    ? p.getBarcode() : "---";
+            productListModel.addElement(String.format("ID: %d | Barcode: %s | %s - %.2f EUR %s",
+                    p.getPid(), barcode, p.getBezeichnung(), p.getPreis(), unit));
+        }
     }
 
     private void showAddNewProductDialog(DefaultListModel<String> productListModel) {
@@ -486,23 +494,15 @@ public class SwingKassensystemApp extends JFrame {
             product.setPreis(preis);
             product.setBarcode(barcode);
             product.setWeightBased(isWeightBased);
-            product.setKid(1); // Default category
-            product.setMwst(0.19); // Default 19% VAT
+            product.setKid(DEFAULT_CATEGORY_ID);
+            product.setMwst(DEFAULT_VAT_RATE);
 
             if (produktService.saveProduct(product)) {
                 JOptionPane.showMessageDialog(addDialog, 
                         "Produkt erfolgreich hinzugefügt!", 
                         "Erfolg", JOptionPane.INFORMATION_MESSAGE);
                 // Refresh product list
-                productListModel.clear();
-                List<Produkt> updatedProducts = produktService.getAllProducts();
-                for (Produkt p : updatedProducts) {
-                    String unit = p.isWeightBased() ? "pro kg" : "pro Stück";
-                    String bc = p.getBarcode() != null && !p.getBarcode().isEmpty() 
-                            ? p.getBarcode() : "---";
-                    productListModel.addElement(String.format("ID: %d | Barcode: %s | %s - %.2f EUR %s",
-                            p.getPid(), bc, p.getBezeichnung(), p.getPreis(), unit));
-                }
+                refreshProductList(productListModel);
                 addDialog.dispose();
             } else {
                 JOptionPane.showMessageDialog(addDialog, 
