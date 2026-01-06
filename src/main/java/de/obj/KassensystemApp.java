@@ -11,6 +11,9 @@ import java.util.Scanner;
  * Console-based interface simulating a touchscreen system.
  */
 public class KassensystemApp {
+    private static final double MIN_VAT_RATE = 0.0;
+    private static final double MAX_VAT_RATE = 100.0;
+
     private final Scanner scanner;
     private final UserService userService;
     private final ProduktService produktService;
@@ -405,8 +408,8 @@ public class KassensystemApp {
                 selectedProduct.getBezeichnung(), selectedProduct.getMwst() * 100);
 
         double newVatPercent = readDouble("Neue MwSt (in %): ");
-        if (newVatPercent < 0 || newVatPercent > 100) {
-            System.out.println("MwSt muss zwischen 0 und 100 liegen!");
+        if (newVatPercent < MIN_VAT_RATE || newVatPercent > MAX_VAT_RATE) {
+            System.out.printf("MwSt muss zwischen %.0f und %.0f liegen!%n", MIN_VAT_RATE, MAX_VAT_RATE);
             pause();
             return;
         }

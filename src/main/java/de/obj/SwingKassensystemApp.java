@@ -12,6 +12,8 @@ import java.util.List;
 public class SwingKassensystemApp extends JFrame {
     private static final int DEFAULT_CATEGORY_ID = 1;
     private static final double DEFAULT_VAT_RATE = 0.19;
+    private static final double MIN_VAT_RATE = 0.0;
+    private static final double MAX_VAT_RATE = 100.0;
 
     private final UserService userService;
     private final ProduktService produktService;
@@ -559,7 +561,8 @@ public class SwingKassensystemApp extends JFrame {
         // VAT input panel
         JPanel vatInputPanel = new JPanel(new FlowLayout());
         vatInputPanel.add(new JLabel("Neue MwSt (%):"));
-        JTextField vatField = new JTextField("19", 10);
+        String defaultVatStr = String.format("%.0f", DEFAULT_VAT_RATE * 100);
+        JTextField vatField = new JTextField(defaultVatStr, 10);
         vatInputPanel.add(vatField);
 
         // Buttons
@@ -577,12 +580,16 @@ public class SwingKassensystemApp extends JFrame {
             double vatPercent;
             try {
                 vatPercent = Double.parseDouble(vatStr);
-                if (vatPercent < 0 || vatPercent > 100) {
-                    throw new NumberFormatException("MwSt muss zwischen 0 und 100 liegen");
-                }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(vatDialog,
-                        "Bitte geben Sie einen gültigen MwSt-Satz zwischen 0 und 100 ein!",
+                        "Bitte geben Sie eine gültige Zahl ein!",
+                        "Eingabefehler", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (vatPercent < MIN_VAT_RATE || vatPercent > MAX_VAT_RATE) {
+                JOptionPane.showMessageDialog(vatDialog,
+                        String.format("MwSt muss zwischen %.0f und %.0f liegen!", MIN_VAT_RATE, MAX_VAT_RATE),
                         "Eingabefehler", JOptionPane.ERROR_MESSAGE);
                 return;
             }
