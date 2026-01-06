@@ -741,7 +741,63 @@ public class SwingKassensystemApp extends JFrame {
     }
 
     private void showStatistics() {
-        JOptionPane.showMessageDialog(this, "Statistiken - Implementierung folgt in erweiterten Versionen");
+        JDialog statsDialog = new JDialog(this, "Verkaufsstatistiken", true);
+        statsDialog.setSize(500, 400);
+        statsDialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Calculate dates
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate weekAgo = today.minusDays(7);
+
+        String todayStr = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String weekAgoStr = weekAgo.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        // Get statistics
+        VerkaufService.SalesStatistics dailyStats = verkaufService.getSalesStatistics(todayStr, todayStr);
+        VerkaufService.SalesStatistics weeklyStats = verkaufService.getSalesStatistics(weekAgoStr, todayStr);
+
+        // Create statistics display
+        JPanel statsPanel = new JPanel(new GridLayout(2, 1, 10, 20));
+        statsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Daily statistics panel
+        JPanel dailyPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        dailyPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(), "Tagesumsatz (" + todayStr + ")"));
+        dailyPanel.add(new JLabel("Anzahl Verkäufe: " + dailyStats.totalSales));
+        dailyPanel.add(new JLabel(String.format("Gesamtumsatz: %.2f EUR", dailyStats.totalAmount)));
+        String dailyAvgText = Double.isNaN(dailyStats.avgAmount) || dailyStats.totalSales == 0
+                ? "0.00 EUR" : String.format("%.2f EUR", dailyStats.avgAmount);
+        dailyPanel.add(new JLabel("Durchschnitt pro Verkauf: " + dailyAvgText));
+
+        // Weekly statistics panel
+        JPanel weeklyPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        weeklyPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEtchedBorder(), "Wochenumsatz (" + weekAgoStr + " - " + todayStr + ")"));
+        weeklyPanel.add(new JLabel("Anzahl Verkäufe: " + weeklyStats.totalSales));
+        weeklyPanel.add(new JLabel(String.format("Gesamtumsatz: %.2f EUR", weeklyStats.totalAmount)));
+        String weeklyAvgText = Double.isNaN(weeklyStats.avgAmount) || weeklyStats.totalSales == 0
+                ? "0.00 EUR" : String.format("%.2f EUR", weeklyStats.avgAmount);
+        weeklyPanel.add(new JLabel("Durchschnitt pro Verkauf: " + weeklyAvgText));
+
+        statsPanel.add(dailyPanel);
+        statsPanel.add(weeklyPanel);
+
+        // Close button
+        JButton closeButton = new JButton("Schließen");
+        closeButton.addActionListener(e -> statsDialog.dispose());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(closeButton);
+
+        mainPanel.add(statsPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        statsDialog.add(mainPanel);
+        statsDialog.setVisible(true);
     }
 
     private void logout() {
