@@ -427,18 +427,38 @@ public class KassensystemApp {
     }
 
     private void cancelSale() {
-        System.out.print("Bon-ID zum Stornieren: ");
-        int bonId = readInt("");
+        List<Bon> activeReceipts = verkaufService.getActiveReceipts();
         
-        Bon bon = verkaufService.getReceiptById(bonId);
-        if (bon == null) {
-            System.out.println("Bon nicht gefunden!");
+        if (activeReceipts.isEmpty()) {
+            System.out.println("Keine aktiven Belege zum Stornieren vorhanden!");
             pause();
             return;
         }
         
-        if (bon.isCancelled()) {
-            System.out.println("Bon ist bereits storniert!");
+        System.out.println("\n=== BELEGE ZUM STORNIEREN ===");
+        for (int i = 0; i < activeReceipts.size(); i++) {
+            Bon bon = activeReceipts.get(i);
+            System.out.printf("%d. Bon-Nr: %d | Datum: %s | Verkäufer: %s | Betrag: %.2f EUR%n", 
+                i + 1, 
+                bon.getBonId(), 
+                bon.getFormattedDatum(), 
+                bon.getVerkaufer().getFullName(), 
+                bon.getBruttoGesamtbetrag());
+        }
+        
+        int choice = readInt("Beleg wählen (1-" + activeReceipts.size() + "): ");
+        if (choice < 1 || choice > activeReceipts.size()) {
+            System.out.println("Ungültige Auswahl!");
+            pause();
+            return;
+        }
+        
+        Bon selectedBon = activeReceipts.get(choice - 1);
+        
+        // Load full receipt details
+        Bon bon = verkaufService.getReceiptById(selectedBon.getBonId());
+        if (bon == null) {
+            System.out.println("Fehler beim Laden der Beleg-Details!");
             pause();
             return;
         }
@@ -453,7 +473,7 @@ public class KassensystemApp {
             System.out.print("Grund für Stornierung: ");
             String reason = scanner.nextLine().trim();
             
-            if (verkaufService.cancelSale(bonId, currentUser, reason)) {
+            if (verkaufService.cancelSale(bon.getBonId(), currentUser, reason)) {
                 System.out.println("Verkauf erfolgreich storniert!");
             } else {
                 System.out.println("Fehler beim Stornieren!");
